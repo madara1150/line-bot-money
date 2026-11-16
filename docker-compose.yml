@@ -1,0 +1,24 @@
+services:
+  bot:
+    build: .
+    env_file: .env
+    volumes:
+      - bot-data:/data          # expenses.db + slip images
+    ports:
+      - "127.0.0.1:${BOT_PORT:-8000}:8000"   # local only; the public side goes through the tunnel
+    restart: unless-stopped
+
+  # Cloudflare Tunnel: start with `docker compose --profile tunnel up -d`
+  # In the Cloudflare dashboard, point the public hostname to http://bot:8000
+  tunnel:
+    image: cloudflare/cloudflared:2024.12.2
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - bot
+    restart: unless-stopped
+    profiles: ["tunnel"]
+
+volumes:
+  bot-data:
